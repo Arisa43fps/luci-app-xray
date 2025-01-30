@@ -44,15 +44,11 @@ jobs:
           key: openwrt-${{ matrix.arch }}-${{ env.PACKAGE_NAME }}-${{ steps.cache_key.outputs.timestamp }}
           restore-keys: |
             openwrt-${{ matrix.arch }}-${{ env.PACKAGE_NAME }}-
+
       - name: Install Dependencies
         run: |
           DEBIAN_FRONTEND=noninteractive sudo apt-get install -y ccache gettext libncurses5-dev xsltproc
-      - name: Create Tag
-        run: |
-          if [ -z "$(git tag --list ${{ github.ref }})" ]; then
-            git tag -a ${{ github.ref }} -m "Tag created by workflow"
-            git push origin ${{ github.ref }}
-          fi
+
       - name: Create Directories
         run: |
           CACHE_DIR_SDK="$(eval echo "$CACHE_DIR/sdk")"
@@ -68,6 +64,7 @@ jobs:
           echo "CACHE_DIR_DL=$CACHE_DIR_DL" >> $GITHUB_ENV
           echo "CACHE_DIR_FEEDS=$CACHE_DIR_FEEDS" >> $GITHUB_ENV
           echo "SDK_HOME=$(mktemp -d)" >> $GITHUB_ENV
+
       - name: Download and Unzip SDK
         run: |
           cd "$CACHE_DIR_SDK"
@@ -97,6 +94,7 @@ jobs:
           sed -i 's#git.openwrt.org/project/luci#github.com/openwrt/luci#' feeds.conf
           sed -i 's#git.openwrt.org/feed/telephony#github.com/openwrt/telephony#' feeds.conf
           cd -
+
       - name: Update and Install Packages
         run: |
           cd "$SDK_HOME"
@@ -104,6 +102,7 @@ jobs:
           ln -s "${{ github.workspace }}" "package/$PACKAGE_NAME"
           ./scripts/feeds install -a
           cd -
+
       - name: Build Packages
         run: |
           cd "$SDK_HOME"
@@ -111,10 +110,12 @@ jobs:
           make package/${PACKAGE_NAME}/status/{clean,compile} V=s
           find "$SDK_HOME/bin/" -type f -name "*.ipk" -exec ls -lh {} \;
           cd -
+
       - name: Copy Bin Files
         run: |
           find "$SDK_HOME/bin/" -type f -name "${PACKAGE_NAME}*.ipk" -exec cp {} "${{ github.workspace }}" \;
           find "${{ github.workspace }}" -type f -name "*.ipk" -exec ls -lh {} \;
+
       - name: Release and Upload Assets
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
