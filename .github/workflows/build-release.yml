@@ -47,6 +47,12 @@ jobs:
       - name: Install Dependencies
         run: |
           DEBIAN_FRONTEND=noninteractive sudo apt-get install -y ccache gettext libncurses5-dev xsltproc
+      - name: Create Tag
+        run: |
+          if [ -z "$(git tag --list ${{ github.ref }})" ]; then
+            git tag -a ${{ github.ref }} -m "Tag created by workflow"
+            git push origin ${{ github.ref }}
+          fi
       - name: Create Directories
         run: |
           CACHE_DIR_SDK="$(eval echo "$CACHE_DIR/sdk")"
@@ -110,6 +116,7 @@ jobs:
           find "$SDK_HOME/bin/" -type f -name "${PACKAGE_NAME}*.ipk" -exec cp {} "${{ github.workspace }}" \;
           find "${{ github.workspace }}" -type f -name "*.ipk" -exec ls -lh {} \;
       - name: Release and Upload Assets
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           files: "*.ipk"
